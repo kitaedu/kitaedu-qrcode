@@ -49,7 +49,7 @@ function App() {
         <header className="mb-12 flex items-center justify-between animate-fade-in">
           <div className="flex items-center gap-4">
             <div className="flex items-center justify-center w-12 h-12 bg-white rounded-xl shadow-lg shadow-indigo-500/20 overflow-hidden p-1">
-              <img src="/logo.png" alt="KITA Edu Logo" className="w-full h-full object-contain" />
+              <img src={`${import.meta.env.BASE_URL}logo.png`} alt="KITA Edu Logo" className="w-full h-full object-contain" />
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight leading-none text-slate-50">
