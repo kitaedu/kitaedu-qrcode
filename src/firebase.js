@@ -21,8 +21,14 @@ let db;
 
 try {
     app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
     db = getFirestore(app);
+
+    // Initialize Analytics optionally
+    try {
+        const analytics = getAnalytics(app);
+    } catch (e) {
+        console.warn("Firebase Analytics failed to load (likely ad-blocker):", e);
+    }
 } catch (error) {
     console.error("Firebase initialization failed. Please check your config in src/firebase.js", error);
 }

@@ -43,6 +43,8 @@ const QRCodeGenerator = ({ text, fgColor, bgColor, frame, qrType }) => {
     const generateDynamicQR = async () => {
         if (!text) return;
         setLoading(true);
+        console.log("Starting Dynamic QR Generation...");
+
         try {
             if (!db) {
                 alert("Firebase is not configured! Check src/firebase.js");
@@ -50,11 +52,20 @@ const QRCodeGenerator = ({ text, fgColor, bgColor, frame, qrType }) => {
                 return;
             }
 
-            const docRef = await addDoc(collection(db, "qr-codes"), {
+            // Create a promise that rejects after 15 seconds
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error("Request timed out")), 15000);
+            });
+
+            const addDocPromise = addDoc(collection(db, "qr-codes"), {
                 url: text,
                 createdAt: new Date(),
                 type: 'dynamic'
             });
+
+            // Race the addDoc against the timeout
+            const docRef = await Promise.race([addDocPromise, timeoutPromise]);
+            console.log("Document written with ID: ", docRef.id);
 
             // Construct the Short URL (pointing to our own app's redirect handler)
             const shortUrl = `${window.location.origin}${window.location.pathname}#/r?id=${docRef.id}`;
@@ -63,7 +74,11 @@ const QRCodeGenerator = ({ text, fgColor, bgColor, frame, qrType }) => {
             setLastGeneratedText(text);
         } catch (error) {
             console.error("Error creating dynamic QR:", error);
-            alert("Error creating dynamic QR. Check console.");
+            if (error.message === "Request timed out") {
+                alert("Connection timed out. Please check your internet or Firebase console settings (ensure Database is created).");
+            } else {
+                alert(`Error: ${error.message}. Check console for details.`);
+            }
         } finally {
             setLoading(false);
         }
