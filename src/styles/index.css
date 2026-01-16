@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', 'system-ui', sans-serif;
+
+  --color-slate-50: #f8fafc;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+
+  --color-indigo-400: #818cf8;
+  --color-indigo-500: #6366f1;
+  --color-indigo-600: #4f46e5;
+
+  --animate-fade-in: fadeIn 0.8s ease-out forwards;
+  --animate-float: float 15s infinite ease-in-out;
+
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1);
+    }
+
+    33% {
+      transform: translate(30px, -50px) scale(1.05);
+    }
+
+    66% {
+      transform: translate(-20px, 20px) scale(0.95);
+    }
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-slate-900 text-slate-50 antialiased min-h-screen relative overflow-x-hidden;
+    font-family: var(--font-sans);
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-slate-800/70 backdrop-blur-xl border border-white/5 shadow-2xl rounded-3xl overflow-hidden relative;
+  }
+
+  .glass-card::before {
+    content: '';
+    @apply absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent;
+  }
+
+  .btn-primary {
+    @apply flex items-center justify-center gap-2.5 px-7 py-3.5 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white font-semibold text-base rounded-xl border border-white/10 shadow-lg transition-all duration-300 hover:-translate-y-px hover:shadow-indigo-500/40 hover:brightness-110 active:translate-y-0;
+  }
+}
+
+/* Custom Background Blobs */
+.blob {
+  @apply absolute rounded-full opacity-50 blur-[100px] animate-float;
+}
+
+.blob-1 {
+  @apply top-[-10%] left-[-5%] w-[600px] h-[600px];
+  background: radial-gradient(circle, #4f46e5 0%, transparent 70%);
+  animation-delay: 0s;
+}
+
+.blob-2 {
+  @apply bottom-[-10%] right-[-5%] w-[500px] h-[500px];
+  background: radial-gradient(circle, #db2777 0%, transparent 70%);
+  animation-delay: -5s;
+}
+
+.blob-3 {
+  @apply top-[40%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px];
+  background: radial-gradient(circle, #0891b2 0%, transparent 70%);
+  animation-delay: -10s;
+  @apply opacity-30;
+}
