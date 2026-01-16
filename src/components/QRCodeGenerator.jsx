@@ -1,10 +1,15 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
-import { Download } from 'lucide-react';
+import { Download, Loader2 } from 'lucide-react';
+import { collection, addDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const QRCodeGenerator = ({ text, fgColor, bgColor, frame, qrType }) => {
     const qrRef = useRef(null);
-    const [copied, setCopied] = React.useState(false);
+    const [copied, setCopied] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [dynamicUrl, setDynamicUrl] = useState('');
+    const [lastGeneratedText, setLastGeneratedText] = useState('');
 
     const handleDownload = () => {
         const canvas = qrRef.current.querySelector('canvas');
@@ -34,6 +39,44 @@ const QRCodeGenerator = ({ text, fgColor, bgColor, frame, qrType }) => {
             }
         }
     };
+
+    const generateDynamicQR = async () => {
+        if (!text) return;
+        setLoading(true);
+        try {
+            if (!db) {
+                alert("Firebase is not configured! Check src/firebase.js");
+                setLoading(false);
+                return;
+            }
+
+            const docRef = await addDoc(collection(db, "qr-codes"), {
+                url: text,
+                createdAt: new Date(),
+                type: 'dynamic'
+            });
+
+            // Construct the Short URL (pointing to our own app's redirect handler)
+            const shortUrl = `${window.location.origin}${window.location.pathname}#/r?id=${docRef.id}`;
+
+            setDynamicUrl(shortUrl);
+            setLastGeneratedText(text);
+        } catch (error) {
+            console.error("Error creating dynamic QR:", error);
+            alert("Error creating dynamic QR. Check console.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Reset dynamic ID if user switches back to static or changes text significantly
+    useEffect(() => {
+        if (qrType === 'static') {
+            setDynamicUrl('');
+        }
+    }, [qrType, text]);
+
+    const qrValue = qrType === 'dynamic' ? (dynamicUrl || text) : text;
 
     // Frame Renderer Wrapper
     const FrameWrapper = ({ children, frameStyle }) => {
@@ -82,7 +125,7 @@ const QRCodeGenerator = ({ text, fgColor, bgColor, frame, qrType }) => {
             <div ref={qrRef} className="relative z-10 p-4 transition-all duration-300">
                 <FrameWrapper frameStyle={frame}>
                     <QRCodeCanvas
-                        value={text || "https://example.com"}
+                        value={qrValue || "https://example.com"}
                         size={280}
                         fgColor={fgColor}
                         bgColor={bgColor}
@@ -100,31 +143,57 @@ const QRCodeGenerator = ({ text, fgColor, bgColor, frame, qrType }) => {
                 )}
             </div>
 
-            <div className="flex items-center gap-4 relative z-10">
+            {/* Dynamic Generation Controls */}
+            {qrType === 'dynamic' && !dynamicUrl && (
                 <button
-                    onClick={handleCopy}
-                    className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-800 text-white font-medium rounded-xl border border-slate-700 shadow-lg transition-all hover:bg-slate-700 hover:-translate-y-px active:translate-y-0"
+                    onClick={generateDynamicQR}
+                    disabled={loading}
+                    className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-rose-500 to-orange-500 text-white font-bold rounded-xl shadow-lg hover:shadow-orange-500/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    {copied ? (
-                        <>
-                            <span className="text-emerald-400">Copied!</span>
-                        </>
-                    ) : (
-                        <>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
-                            <span>Copy</span>
-                        </>
-                    )}
+                    {loading ? <Loader2 className="animate-spin" /> : 'Generate Short Link'}
                 </button>
+            )}
 
-                <button
-                    onClick={handleDownload}
-                    className="btn-primary group"
-                >
-                    <Download size={20} className="group-hover:animate-bounce" />
-                    <span>Download PNG</span>
-                </button>
-            </div>
+            {qrType === 'dynamic' && dynamicUrl && (
+                <div className="text-center animate-fade-in">
+                    <p className="text-slate-400 text-xs mb-1">Redirects to: {lastGeneratedText}</p>
+                    <button
+                        onClick={() => { setDynamicUrl(''); setLastGeneratedText(''); }}
+                        className="text-indigo-400 text-xs hover:underline decoration-indigo-400/30"
+                    >
+                        Create New Link
+                    </button>
+                </div>
+            )}
+
+            {/* Action Buttons */}
+            {(qrType === 'static' || dynamicUrl) && (
+                <div className="flex items-center gap-4 relative z-10">
+                    <button
+                        onClick={handleCopy}
+                        className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-800 text-white font-medium rounded-xl border border-slate-700 shadow-lg transition-all hover:bg-slate-700 hover:-translate-y-px active:translate-y-0"
+                    >
+                        {copied ? (
+                            <>
+                                <span className="text-emerald-400">Copied!</span>
+                            </>
+                        ) : (
+                            <>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
+                                <span>Copy</span>
+                            </>
+                        )}
+                    </button>
+
+                    <button
+                        onClick={handleDownload}
+                        className="btn-primary group"
+                    >
+                        <Download size={20} className="group-hover:animate-bounce" />
+                        <span>Download PNG</span>
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

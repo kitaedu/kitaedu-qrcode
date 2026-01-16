@@ -1,16 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles, QrCode } from 'lucide-react';
 import Controls from './components/Controls';
 import QRCodeGenerator from './components/QRCodeGenerator';
+import RedirectHandler from './components/RedirectHandler';
 import './styles/index.css';
 import './styles/btn-shine.css';
 
 function App() {
+  const [isRedirecting, setIsRedirecting] = useState(false);
+
+  useEffect(() => {
+    // Check if current URL is a redirect link (e.g., #/r?id=...)
+    const checkRedirect = () => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#/r')) {
+        setIsRedirecting(true);
+      } else {
+        setIsRedirecting(false);
+      }
+    };
+
+    checkRedirect();
+    window.addEventListener('hashchange', checkRedirect);
+    return () => window.removeEventListener('hashchange', checkRedirect);
+  }, []);
+
   const [text, setText] = useState('https://example.com');
   const [fgColor, setFgColor] = useState('#000000');
   const [bgColor, setBgColor] = useState('#ffffff');
   const [frame, setFrame] = useState('simple');
   const [qrType, setQrType] = useState('static'); // 'static' or 'dynamic'
+
+  if (isRedirecting) {
+    return <RedirectHandler />;
+  }
 
   return (
     <>
